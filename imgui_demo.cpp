@@ -502,6 +502,8 @@ void ImGui::ShowDemoWindow(bool* p_open)
 
             ImGui::Checkbox("io.ConfigInputTrickleEventQueue", &io.ConfigInputTrickleEventQueue);
             ImGui::SameLine(); HelpMarker("Enable input queue trickling: some types of events submitted during the same frame (e.g. button down + up) will be spread over multiple frames, improving interactions with low framerates.");
+            ImGui::CheckboxFlags("io.ConfigFlags: EnablePowerSavingMode", (unsigned int *)&io.ConfigFlags, ImGuiConfigFlags_EnablePowerSavingMode);
+            ImGui::SameLine(); HelpMarker("Enable power saving mode, reducing the frame rate automatically when idle.");
             ImGui::Checkbox("io.ConfigInputTextCursorBlink", &io.ConfigInputTextCursorBlink);
             ImGui::SameLine(); HelpMarker("Enable blinking cursor (optional as some users consider it to be distracting).");
             ImGui::Checkbox("io.ConfigInputTextEnterKeepActive", &io.ConfigInputTextEnterKeepActive);
@@ -1710,6 +1712,8 @@ static void ShowDemoWindowWidgets()
     {
         static bool animate = true;
         ImGui::Checkbox("Animate", &animate);
+        if (animate)
+            ImGui::SetMaxWaitBeforeNextFrame(1.0 / 30.0); // = 30fps
 
         // Plot as lines and plot as histogram
         IMGUI_DEMO_MARKER("Widgets/Plotting/PlotLines, PlotHistogram");
@@ -6154,6 +6158,7 @@ void ImGui::ShowAboutWindow(bool* p_open)
         if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)          ImGui::Text(" ViewportsEnable");
         if (io.ConfigFlags & ImGuiConfigFlags_DpiEnableScaleViewports)  ImGui::Text(" DpiEnableScaleViewports");
         if (io.ConfigFlags & ImGuiConfigFlags_DpiEnableScaleFonts)      ImGui::Text(" DpiEnableScaleFonts");
+        if (io.ConfigFlags & ImGuiConfigFlags_EnablePowerSavingMode)    ImGui::Text(" EnablePowerSavingMode");
         if (io.MouseDrawCursor)                                         ImGui::Text("io.MouseDrawCursor");
         if (io.ConfigViewportsNoAutoMerge)                              ImGui::Text("io.ConfigViewportsNoAutoMerge");
         if (io.ConfigViewportsNoTaskBarIcon)                            ImGui::Text("io.ConfigViewportsNoTaskBarIcon");

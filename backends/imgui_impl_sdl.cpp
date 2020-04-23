@@ -86,6 +86,8 @@
 #define SDL_HAS_ALWAYS_ON_TOP               SDL_VERSION_ATLEAST(2,0,5)
 #define SDL_HAS_USABLE_DISPLAY_BOUNDS       SDL_VERSION_ATLEAST(2,0,5)
 #define SDL_HAS_PER_MONITOR_DPI             SDL_VERSION_ATLEAST(2,0,4)
+#include <math.h> // isinf
+
 #define SDL_HAS_VULKAN                      SDL_VERSION_ATLEAST(2,0,6)
 #if !SDL_HAS_VULKAN
 static const Uint32 SDL_WINDOW_VULKAN = 0x10000000;
@@ -260,6 +262,26 @@ static void ImGui_ImplSDL2_UpdateKeyModifiers(SDL_Keymod sdl_key_mods)
     io.AddKeyEvent(ImGuiMod_Super, (sdl_key_mods & KMOD_GUI) != 0);
 }
 
+void ImGui_ImplSDL2_WaitForEvent()
+{
+    if (!(ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_EnablePowerSavingMode))
+        return;
+
+    Uint32 window_flags = SDL_GetWindowFlags(g_Window);
+    bool window_is_hidden = window_flags & (SDL_WINDOW_HIDDEN | SDL_WINDOW_MINIMIZED);
+    double waiting_time = window_is_hidden ? INFINITY : ImGui::GetEventWaitingTime();
+    if (waiting_time > 0.0)
+    {
+        if (isinf(waiting_time))
+            SDL_WaitEvent(NULL);
+        else
+        {
+            const int waiting_time_ms = (int)(1000.0 * ImGui::GetEventWaitingTime());
+            SDL_WaitEventTimeout(NULL, waiting_time_ms);
+        }
+    }
+}
+
 // You can read the io.WantCaptureMouse, io.WantCaptureKeyboard flags to tell if dear imgui wants to use your inputs.
 // - When io.WantCaptureMouse is true, do not dispatch mouse input data to your main application, or clear/overwrite your copy of the mouse data.
 // - When io.WantCaptureKeyboard is true, do not dispatch keyboard input data to your main application, or clear/overwrite your copy of the keyboard data.
@@ -268,6 +290,7 @@ static void ImGui_ImplSDL2_UpdateKeyModifiers(SDL_Keymod sdl_key_mods)
 bool ImGui_ImplSDL2_ProcessEvent(const SDL_Event* event)
 {
     ImGuiIO& io = ImGui::GetIO();
+    io.FrameCountSinceLastInput = 0;
     ImGui_ImplSDL2_Data* bd = ImGui_ImplSDL2_GetBackendData();
 
     switch (event->type)

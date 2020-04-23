@@ -71,6 +71,8 @@
 #pragma clang diagnostic ignored "-Wsign-conversion"    // warning: implicit conversion changes signedness
 #endif
 
+#include <math.h> // isinf
+
 // GLFW
 #include <GLFW/glfw3.h>
 
@@ -318,6 +320,8 @@ void ImGui_ImplGlfw_MouseButtonCallback(GLFWwindow* window, int button, int acti
     ImGuiIO& io = ImGui::GetIO();
     if (button >= 0 && button < ImGuiMouseButton_COUNT)
         io.AddMouseButtonEvent(button, action == GLFW_PRESS);
+    
+    io.FrameCountSinceLastInput = 0;
 }
 
 void ImGui_ImplGlfw_ScrollCallback(GLFWwindow* window, double xoffset, double yoffset)
@@ -328,6 +332,8 @@ void ImGui_ImplGlfw_ScrollCallback(GLFWwindow* window, double xoffset, double yo
 
     ImGuiIO& io = ImGui::GetIO();
     io.AddMouseWheelEvent((float)xoffset, (float)yoffset);
+
+    io.FrameCountSinceLastInput = 0;
 }
 
 static int ImGui_ImplGlfw_TranslateUntranslatedKey(int key, int scancode)
@@ -383,6 +389,9 @@ void ImGui_ImplGlfw_KeyCallback(GLFWwindow* window, int keycode, int scancode, i
     keycode = ImGui_ImplGlfw_TranslateUntranslatedKey(keycode, scancode);
 
     ImGuiIO& io = ImGui::GetIO();
+    
+    io.FrameCountSinceLastInput = 0;
+    
     ImGuiKey imgui_key = ImGui_ImplGlfw_KeyToImGuiKey(keycode);
     io.AddKeyEvent(imgui_key, (action == GLFW_PRESS));
     io.SetKeyEventNativeData(imgui_key, keycode, scancode); // To support legacy indexing (<1.87 user code)
@@ -407,6 +416,7 @@ void ImGui_ImplGlfw_CursorPosCallback(GLFWwindow* window, double x, double y)
         return;
 
     ImGuiIO& io = ImGui::GetIO();
+    io.FrameCountSinceLastInput = 0;
     if (io.ConfigFlags & ImGuiConfigFlags_ViewportsEnable)
     {
         int window_x, window_y;
@@ -449,6 +459,7 @@ void ImGui_ImplGlfw_CharCallback(GLFWwindow* window, unsigned int c)
         bd->PrevUserCallbackChar(window, c);
 
     ImGuiIO& io = ImGui::GetIO();
+    io.FrameCountSinceLastInput = 0;
     io.AddInputCharacter(c);
 }
 
@@ -606,6 +617,23 @@ void ImGui_ImplGlfw_Shutdown()
     io.BackendPlatformName = nullptr;
     io.BackendPlatformUserData = nullptr;
     IM_DELETE(bd);
+}
+
+void ImGui_ImplGlfw_WaitForEvent()
+{
+    if (!(ImGui::GetIO().ConfigFlags & ImGuiConfigFlags_EnablePowerSavingMode))
+        return;
+
+    ImGui_ImplGlfw_Data* bd = ImGui_ImplGlfw_GetBackendData();
+    bool window_is_hidden = !glfwGetWindowAttrib(bd->Window, GLFW_VISIBLE) || glfwGetWindowAttrib(bd->Window, GLFW_ICONIFIED);
+    double waiting_time = window_is_hidden ? INFINITY : ImGui::GetEventWaitingTime();
+    if (waiting_time > 0.0)
+    {
+        if (isinf(waiting_time))
+            glfwWaitEvents();
+        else
+            glfwWaitEventsTimeout(waiting_time);
+    }
 }
 
 static void ImGui_ImplGlfw_UpdateMouseData()
