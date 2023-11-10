@@ -46,6 +46,7 @@ Index of this file:
 #else
 #include <stdint.h>     // intptr_t
 #endif
+#include <time.h>
 
 //-------------------------------------------------------------------------
 // Warnings
@@ -3029,6 +3030,26 @@ bool ImGui::SliderScalarN(const char* label, ImGuiDataType data_type, void* v, i
 
     EndGroup();
     return value_changed;
+}
+
+bool ImGui::SliderTime(const char* label, double* v, double v_min, double v_max, const char* format, ImGuiSliderFlags flags)
+{
+    char time_string[80];
+    char msec_string[80];
+    time_t time_secs = (time_t)(*v);
+    double frac_secs = *v - time_secs;
+    int msecs = (int)(frac_secs * 1000);
+
+    struct tm* info;
+    info = gmtime(&time_secs);
+    strftime(time_string, 80, format, info);
+    snprintf(msec_string, 80, "%s.%03d", time_string, msecs);
+    return SliderScalar(label, ImGuiDataType_Double, v, &v_min, &v_max, msec_string, flags);
+}
+
+bool ImGui::SliderDouble(const char* label, double* v, double v_min, double v_max, const char* format, ImGuiSliderFlags flags)
+{
+    return SliderScalar(label, ImGuiDataType_Double, v, &v_min, &v_max, format, flags);
 }
 
 bool ImGui::SliderFloat(const char* label, float* v, float v_min, float v_max, const char* format, ImGuiSliderFlags flags)
